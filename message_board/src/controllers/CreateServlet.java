@@ -40,12 +40,27 @@ public class CreateServlet extends HttpServlet {
             m.setCreated_at(currentTime);
             m.setUpdated_at(currentTime);
 
-            em.persist(m);
-            em.getTransaction().commit();
-            request.getSession().setAttribute("flush", "登録が完了しました。");
-            em.close();
+            List<String> errors = MessageValidator.validate(m);
+            if(errors.size() > 0) {
+                em.close();
 
-            response.sendRedirect(request.getContextPath() + "/index");
+                // フォームに初期値を設定、さらにエラーメッセージを送る
+                request.setAttribute("_token", request.getSession().getId());
+                request.setAttribute("message", m);
+                request.setAttribute("errors", errors);
+
+                RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/views/messages/new.jsp");
+                rd.forward(request, response);
+            } else {
+                // データベースに保存
+                em.persist(m);
+                em.getTransaction().commit();
+                request.getSession().setAttribute("flush", "登録が完了しました。");
+                em.close();
+
+                // indexのページにリダイレクト
+                response.sendRedirect(request.getContextPath() + "/index");
+            }
         }
     }
 
